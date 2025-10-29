@@ -1,0 +1,331 @@
+/*
+Date of Creation: 15.10.2025
+Most recent edit: 21.10.2025
+Creator: Silja Marti, 2228912
+References: 
+1) Led set up: https://adafruit.github.io/Adafruit_NeoPixel/html/class_adafruit___neo_pixel.html#details 
+2)  Variable used for interrupting logic (used with millis): Arduino documentation: https://docs.arduino.cc/language-reference/en/variables/data-types/unsignedLong/ 
+3) Interrupting Led logic: OpenAI. GPT-5-mini. Prompt: "Example of a logic that interrupts a set led sequence with a flash (other colour) by pressing a button (arduino)"
+4) Interrupting led logic: Arduino library. https://docs.arduino.cc/language-reference/en/functions/time/millis/ 
+5) Rainbow sequence: Adafruit common utility functions: https://learn.adafruit.com/multi-tasking-the-arduino-part-3/utility-functions 
+6) Rainbow sequence: Adafruit forum: https://forums.adafruit.com/viewtopic.php?t=123034 
+*/
+
+
+
+
+
+
+#include <Adafruit_NeoPixel.h>
+
+#define STRIP1_PIN 6   // 8 LEDs (second punch station)
+#define STRIP2_PIN 5   // 8 LEDs (first punch station)
+#define STRIP3_PIN 3 //12 LEDs (start button)
+
+#define BUTTON_START 2
+#define BUTTON_1 7
+#define BUTTON_2 8
+
+#define STRIP1_LEDS 8
+#define STRIP2_LEDS 8
+#define STRIP3_LEDS 12
+
+#define BRIGHTNESS 153 //60% of brightness
+
+Adafruit_NeoPixel strip1(STRIP1_LEDS, STRIP1_PIN, NEO_GRB + NEO_KHZ800);//reference 1
+Adafruit_NeoPixel strip2(STRIP2_LEDS, STRIP2_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip3(STRIP3_LEDS, STRIP3_PIN, NEO_GRB + NEO_KHZ800);
+
+//control variables for leds
+bool sequenceRunning = false;
+bool flash1 = false;
+bool flash2 = false;
+unsigned long flashStart = 0; //reference 2 
+const int flashDuration = 200;
+
+//set up of different light strips
+void setup() {
+  strip1.begin();
+  strip2.begin();
+  strip3.begin();
+  strip1.setBrightness(BRIGHTNESS);
+  strip2.setBrightness(BRIGHTNESS);
+  strip3.setBrightness(BRIGHTNESS);
+  strip1.show();
+  strip2.show();
+  strip3.show();
+
+  pinMode(BUTTON_START, INPUT_PULLUP);
+  pinMode(BUTTON_1, INPUT_PULLUP);
+  pinMode(BUTTON_2, INPUT_PULLUP);
+}
+ 
+//white interrupting light logic (normal sequence not in loop = only one time)
+void loop() {
+  // Start button
+  if (!sequenceRunning && digitalRead(BUTTON_START) == LOW) {
+    sequenceRunning = true;
+    runSequence();
+    sequenceRunning = false;
+  }
+
+  // Punch buttons (white flash)
+  //reference 3,4
+  if (digitalRead(BUTTON_1) == LOW && !flash1) {
+    flash1 = true;
+    flashStart = millis();
+    setAll(strip2, 255, 255, 255);
+  }
+
+  if (digitalRead(BUTTON_2) == LOW && !flash2) {
+    flash2 = true;
+    flashStart = millis();
+    setAll(strip1, 255, 255, 255);
+  }
+
+  // Handle flash timeout
+  if (flash1 && millis() - flashStart >= flashDuration) {
+    flash1 = false;
+    setAll(strip2, 0, 0, 0);
+  }
+  if (flash2 && millis() - flashStart >= flashDuration) {
+    flash2 = false;
+    setAll(strip1, 0, 0, 0);
+  }
+}
+
+// The main manual sequence
+void runSequence() {
+  // Start animation: radiate twice
+  delay(1000);
+  while(digitalRead(BUTTON_START)){
+    radiate(strip3, 255, 0, 0, 100, 2);
+  }
+  setAll(strip3, 100, 100, 100);
+  delay(2000);
+
+  // Round 1
+  flash(strip1, 255, 0, 0, 2000);
+  smartDelay(340);
+  flash(strip2, 255, 0, 0, 1500);
+  smartDelay(340);
+
+  // Round 2
+  flash(strip1, 255, 0, 0, 1250);
+  smartDelay(260);
+  flash(strip2, 255, 0, 0, 1000);
+  smartDelay(260);
+
+  // Round 3
+  flash(strip1, 255, 0, 0, 750);
+  smartDelay(180);
+  flash(strip1, 255, 0, 0, 750);
+  smartDelay(180);
+
+  // Round 4
+  flash(strip2, 255, 0, 0, 750);
+  smartDelay(180);
+  flash(strip1, 255, 0, 0, 750);
+  smartDelay(180);
+
+  // Round 5
+  flash(strip2, 255, 0, 0, 750);
+  smartDelay(180);
+  flash(strip2, 255, 0, 0, 750);
+  smartDelay(180);
+
+  // Round 6
+  flash(strip1, 255, 0, 0, 750);
+  smartDelay(180);
+  flash(strip2, 255, 0, 0, 750);
+  smartDelay(180);
+
+  // Round 7
+  flash(strip1, 255, 0, 0, 750);
+  smartDelay(150);
+  flash(strip1, 255, 0, 0, 750);
+  smartDelay(150);
+
+  // Round 8
+  flash(strip2, 255, 0, 0, 750);
+  smartDelay(150);
+  flash(strip1, 255, 0, 0, 750);
+  smartDelay(150);
+
+  // Round 9
+  flash(strip1, 255, 0, 0, 500);
+  smartDelay(150);
+  flash(strip2, 255, 0, 0, 500);
+  smartDelay(150);
+
+  // Round 10
+  flash(strip2, 255, 0, 0, 500);
+  smartDelay(150);
+  flash(strip2, 255, 0, 0, 500);
+  smartDelay(150);
+
+  // Round 11
+  flash(strip1, 255, 0, 0, 500);
+  smartDelay(150);
+  flash(strip1, 255, 0, 0, 500);
+  smartDelay(150);
+
+  // Round 12
+  flash(strip1, 255, 0, 0, 500);
+  smartDelay(150);
+  flash(strip2, 255, 0, 0, 500);
+  smartDelay(150);
+
+  // Round 13
+  flash(strip1, 255, 0, 0, 250);
+  smartDelay(150);
+  flash(strip2, 255, 0, 0, 250);
+  smartDelay(150);
+
+  // Round 14
+  flash(strip2, 255, 0, 0, 250);
+  smartDelay(100);
+  flash(strip2, 255, 0, 0, 250);
+  smartDelay(100);
+
+  // Round 15
+  flash(strip1, 255, 0, 0, 250);
+  smartDelay(100);
+  flash(strip2, 255, 0, 0, 250);
+  smartDelay(250);
+
+//Cooldown phase 
+//round 16
+  flash(strip1, 255, 0, 0, 250);
+  smartDelay(80);
+  flash(strip2, 255, 0, 0, 250);
+  smartDelay(150);
+
+// round 17
+  flash(strip1, 255, 0, 0, 250);
+  smartDelay(120);
+  flash(strip2, 255, 0, 0, 250);
+  smartDelay(60);
+
+ // Round 18
+  flash(strip1, 255, 0, 0, 250);
+  smartDelay(60);
+  flash(strip2, 255, 0, 0, 250);
+  smartDelay(150);
+
+// Round 19
+  flash(strip1, 255, 0, 0, 250);
+  smartDelay(100);
+  flash(strip2, 255, 0, 0, 250);
+  smartDelay(90);
+
+// Round 20
+  flash(strip1, 255, 0, 0, 2000);
+  smartDelay(130);
+  flash(strip2, 255, 0, 0, 1500);
+  smartDelay(30);
+
+setAll(strip1, 255, 0, 0);
+setAll(strip2, 255, 0, 0);
+strip1.show();
+strip2.show();
+
+
+//rainbow sequence in the end
+  for (int i = 0; i < 15; i++) { // repeat multiple times
+      rainbowTriple(strip1, strip2, strip3, 40);
+  }
+
+// Turn everything OFF at the end 
+  setAll(strip1, 0, 0, 0);
+  setAll(strip2, 0, 0, 0);
+  setAll(strip3, 0, 0, 0);
+  strip1.show();
+  strip2.show();
+  strip3.show();
+}
+
+//other necessary helpers
+
+// Smart delay that continously checks for button presses to interrupt normal led sequence
+//reference 3,4
+void smartDelay(unsigned long waitTime) {
+  unsigned long startTime = millis();
+  while (millis() - startTime < waitTime) {
+    // Check buttons during delay
+    if (digitalRead(BUTTON_1) == LOW) {
+      setAll(strip2, 255, 255, 255);  // flash white
+      strip2.show();
+      delay(200);
+      setAll(strip2, 0, 0, 0);
+    }
+    if (digitalRead(BUTTON_2) == LOW) {
+      setAll(strip1, 255, 255, 255);  // flash white
+      strip1.show();
+      delay(200);
+      setAll(strip1, 0, 0, 0);
+    }
+  }
+}
+
+//radiating sequence of start button
+void radiate(Adafruit_NeoPixel &strip, int r, int g, int b, int wait, int rounds) {
+  for (int n = 0; n < rounds && digitalRead(BUTTON_START); n++ ) {
+    for (int i = 0; i < strip.numPixels() && digitalRead(BUTTON_START); i++ ) {
+      strip.setPixelColor(i, strip.Color(r, g, b));
+      strip.show();
+      smartDelay(wait);
+      strip.setPixelColor(i, 0, 0, 0);
+    }
+  }
+}
+
+//flash of red leds
+void flash(Adafruit_NeoPixel &strip, int r, int g, int b, int duration) {
+  setAll(strip, r, g, b);
+  smartDelay(duration);
+  setAll(strip, 0, 0, 0);
+}
+
+//
+void setAll(Adafruit_NeoPixel &strip, int r, int g, int b) {
+  for (int i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, strip.Color(r, g, b));
+  }
+  strip.show();
+}
+
+//rainbow sequence in the end
+//reference 5,6
+void rainbowTriple(Adafruit_NeoPixel &s1, Adafruit_NeoPixel &s2, Adafruit_NeoPixel &s3, int wait) {
+  for (int j = 0; j < 256; j += 16) {
+    uint32_t color1 = Wheel(j);
+    uint32_t color2 = Wheel((j + 64) & 255);
+    uint32_t color3 = Wheel((j + 128) & 255); // different offset for third strip
+
+    for (int i = 0; i < s1.numPixels(); i++) s1.setPixelColor(i, color1);
+    for (int i = 0; i < s2.numPixels(); i++) s2.setPixelColor(i, color2);
+    for (int i = 0; i < s3.numPixels(); i++) s3.setPixelColor(i, color3);
+
+    s1.show();
+    s2.show();
+    s3.show();
+
+    delay(wait);
+  }
+}
+
+
+//colour wheel for rainbow sequence
+//reference 5,6
+uint32_t Wheel(byte pos) {
+  pos = 255 - pos;
+  if (pos < 85) return strip1.Color(255 - pos * 3, 0, pos * 3);
+  if (pos < 170) {
+    pos -= 85;
+    return strip1.Color(0, pos * 3, 255 - pos * 3);
+  }
+  pos -= 170;
+  return strip1.Color(pos * 3, 255 - pos * 3, 0);
+}
+
